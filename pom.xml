@@ -9,12 +9,12 @@
   <artifactId>swagger-codegen</artifactId>
   <packaging>jar</packaging>
   <name>wordnik-swagger-codegen</name>
-  <version>2.1.0-fleque-SNAPSHOT</version>
-  <url>https://github.com/wordnik/swagger-codegen</url>
+  <version>2.1.0-fleque-0.1</version>
+  <url>https://github.com/fleque/swagger-codegen</url>
   <scm>
-    <connection>scm:git:git@github.com:wordnik/swagger-codegen.git</connection>
-    <developerConnection>scm:git:git@github.com:wordnik/swagger-codegen.git</developerConnection>
-    <url>https://github.com/wordnik/swagger-codegen</url>
+    <connection>scm:git:git@github.com:fleque/swagger-codegen.git</connection>
+    <developerConnection>scm:git:git@github.com:fleque/swagger-codegen.git</developerConnection>
+    <url>https://github.com/fleque/swagger-codegen</url>
   </scm>
   <prerequisites>
     <maven>2.2.0</maven>
@@ -24,6 +24,10 @@
       <id>fehguy</id>
       <name>Tony Tam</name>
       <email>fehguy@gmail.com</email>
+    </developer>
+    <developer>
+      <id>fleque</id>
+      <name>Fleque</name>
     </developer>
   </developers>
   <issueManagement>

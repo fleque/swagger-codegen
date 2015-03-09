@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.client.filter.LoggingFilter;
@@ -27,6 +28,7 @@ public class ApiInvoker {
   private static ApiInvoker INSTANCE = new ApiInvoker();
   private Map<String, Client> hostMap = new HashMap<String, Client>();
   private Map<String, String> defaultHeaderMap = new HashMap<String, String>();
+  private Map<String, String> defaultQueryParamMap = new HashMap<String, String>();
   private boolean isDebug = false;
 
   public void enableDebug() {
@@ -40,6 +42,18 @@ public class ApiInvoker {
   public void addDefaultHeader(String key, String value) {
      defaultHeaderMap.put(key, value);
   }
+
+  public void removeDefaultHeader(String key) {
+     defaultHeaderMap.remove(key);
+  }
+
+  public void addDefaultQueryParam(String key, String value) {
+     defaultQueryParamMap.put(key, value);
+  }
+
+  public void removeDefaultQueryParam(String key) {
+     defaultQueryParamMap.remove(key);
+   }
 
   public String escapeString(String str) {
     try{
@@ -87,31 +101,36 @@ public class ApiInvoker {
   public String invokeAPI(String host, String path, String method, Map<String, String> queryParams, Object body, Map<String, String> headerParams, Map<String, String> formParams, String contentType) throws ApiException {
     Client client = getClient(host);
 
-    StringBuilder b = new StringBuilder();
+    WebResource resource = client.resource(host + path);
 
-    for(String key : queryParams.keySet()) {
-      String value = queryParams.get(key);
-      if (value != null){
-        if(b.toString().length() == 0)
-          b.append("?");
-        else
-          b.append("&");
-        b.append(escapeString(key)).append("=").append(escapeString(value));
+    for (Map.Entry<String, String> defParam : defaultQueryParamMap.entrySet()) {
+      if (!queryParams.containsKey(defParam.getKey())) {
+        resource = resource.queryParam(defParam.getKey(), defParam.getValue());
       }
     }
-    String querystring = b.toString();
-
-    Builder builder = client.resource(host + path + querystring).accept("application/json");
-    for(String key : headerParams.keySet()) {
-      builder.header(key, headerParams.get(key));
+    for (Map.Entry<String, String> param : queryParams.entrySet()) {
+      resource = resource.queryParam(param.getKey(), param.getValue());
     }
 
-    for(String key : defaultHeaderMap.keySet()) {
-      if(!headerParams.containsKey(key)) {
-        builder.header(key, defaultHeaderMap.get(key));
+    Builder builder = resource.accept("application/json");
+
+    for (Map.Entry<String, String> defHeader : defaultHeaderMap.entrySet()) {
+      if (!headerParams.containsKey(defHeader.getKey())) {
+        builder = builder.header(defHeader.getKey(), defHeader.getValue());
       }
     }
+    for (Map.Entry<String, String> header : headerParams.entrySet()) {
+      builder = builder.header(header.getKey(), header.getValue());
+    }
+
     ClientResponse response = null;
+
+    Object serializedBody = body;
+    if (body != null) {
+        if ("application/json".equals(contentType)) {
+            serializedBody = serialize(body);
+        }
+    }
 
     if("GET".equals(method)) {
       response = (ClientResponse) builder.get(ClientResponse.class);
@@ -123,11 +142,11 @@ public class ApiInvoker {
         response = builder.type(contentType).post(ClientResponse.class, body);
       }
       else
-        response = builder.type(contentType).post(ClientResponse.class, serialize(body));
+        response = builder.type(contentType).post(ClientResponse.class, serializedBody);
     }
     else if ("PUT".equals(method)) {
       if(body == null)
-        response = builder.put(ClientResponse.class, serialize(body));
+        response = builder.put(ClientResponse.class, serializedBody);
       else {
         if("application/x-www-form-urlencoded".equals(contentType)) {
           StringBuilder formParamBuilder = new StringBuilder();
@@ -150,14 +169,14 @@ public class ApiInvoker {
           response = builder.type(contentType).put(ClientResponse.class, formParamBuilder.toString());
         }
         else
-          response = builder.type(contentType).put(ClientResponse.class, serialize(body));
+          response = builder.type(contentType).put(ClientResponse.class, body);
       }
     }
     else if ("DELETE".equals(method)) {
       if(body == null)
-        response = builder.delete(ClientResponse.class, serialize(body));
+        response = builder.delete(ClientResponse.class, serializedBody);
       else
-        response = builder.type(contentType).delete(ClientResponse.class, serialize(body));
+        response = builder.type(contentType).delete(ClientResponse.class, serializedBody);
     }
     else {
       throw new ApiException(500, "unknown method type " + method);

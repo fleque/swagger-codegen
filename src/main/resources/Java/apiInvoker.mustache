@@ -146,7 +146,7 @@ public class ApiInvoker {
     }
     else if ("PUT".equals(method)) {
       if(serializedBody != null)
-        response = builder.put(ClientResponse.class, serializedBody);
+        response = builder.type(contentType).put(ClientResponse.class, serializedBody);
       else {
         if("application/x-www-form-urlencoded".equals(contentType)) {
           StringBuilder formParamBuilder = new StringBuilder();
